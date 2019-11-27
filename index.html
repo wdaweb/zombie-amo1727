@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>打殭屍</title>
+    <style>
+        body{
+            font-family: Microsoft JhengHei;
+            background: #000000;
+        }
+        #bg{
+            width:1000px;
+            height:750px;
+            background-image: url(./images/bg.jpg);
+            margin: auto;
+            position: relative;
+            cursor:url(./images/a.png)25 25, move
+        }
+        
+       #controlpel{
+            right:10px;
+            top:10px:
+            width:600px;
+            height:100px;
+            margin: auto;
+            padding: 40px 0 5px 0;
+            text-align: center;
+            line-height: 60px;
+            position: absolute;
+            color:#ffffff;
+        }
+        #startarea{
+            margin: 0 auto;
+            width:340px;           
+            float:left;
+        }
+        #showarea{
+            margin: 0 auto;
+            width:330px;
+            font-size: 20px;
+            float:left;
+        }
+        #showtimeout{
+            margin: 0 auto;
+            width:330px;
+            font-size: 20px;
+            float:left;
+        }
+        #showhigh{
+            margin: 0 auto;
+            width:330px;
+            font-size: 20px;
+            float:left;
+        }
+        #bg img {
+            position: absolute;
+        }
+        #bg img.z1{
+            width: 120px;
+            height: 120px;
+        }
+        #bg img.z2{
+            width: 130px;
+            height: 230px;
+        }
+        #bg img.z3{
+            width: 140px;
+            height: 140px;
+        }
+
+        input[type="button"]{
+            border: 1px solid rgb(34, 34, 36);
+            font-size: 20px;
+            width: 250px;
+            height: 40px;
+            margin: 15px;
+            font-weight: bolder;
+        }
+
+        #scoreText,#secText{
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 5em;
+        }
+        #startBtn{
+            width:70px;
+            height:70px;
+            top: 220px;
+            left: 312px;
+            position: absolute; 
+            border-radius: 50%;
+            font-family: Arial, Helvetica, sans-serif;
+            cursor:url(./images/a.png)25 25, move
+        }
+
+    </style>
+</head>
+<body>
+    <div id="bg">
+        <div id="controlpel">
+            <div id="showarea">
+                目前分數 : <span id="scoreText">0</span>分
+            </div>
+            <div id="showtimeout">
+                    剩餘 <span id="secText">30</span> 秒
+                </div>
+            <div id="showhigh">
+                最高分數 : <span id="highNameText"></span> (<span id="highScoreText">0</span>)分
+            </div>
+        </div>
+        <input type="button" value="Start" id="startBtn">
+    </div>
+    
+    <div id="dummy" style="display: none;"></div>
+    
+    <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+    <script>
+        $(function(){
+            // 分數
+            let score = 0;
+            // 遊戲時間
+            let sec = 30;
+
+            // 遊戲倒數計時
+            let gametimer = 0;
+
+            // 殭屍流水號
+            let zbid = 0;
+
+            let high={name:"",score:0};
+            let highNameText = $("#highNameText");
+            let highScoreText = $("#highScoreText");
+            // 找localStorage有無資料
+            let highStorage = window.localStorage.getItem("highscore");
+            if(highStorage != null){
+                high = JSON.parse(highStorage);
+                $("#showhigh").show();
+                if(high.name != ''){
+                    highNameText.text(high.name);
+                }else{
+                    highNameText.text("無名氏");
+                }
+                highScoreText.text(high.score);
+            }
+
+            // 隨機
+            let rand = (num) => {
+                return Math.round(Math.random()*num);
+            }
+
+            // 槍聲
+			$("#bg").on("click",function(){
+                playSound("./images/m4a1-1.wav");
+            })
+
+            // 移動殭屍
+            let movezb = (id,tmpLeft) => {
+                let thisLeft = rand(85);
+				let thisTrans = -1;
+                if (tmpLeft < thisLeft) {
+                    $(`#zb${id}`).css("transform","scaleX(-1)");
+                }else{
+                    $(`#zb${id}`).css("transform","scaleX(1)");
+                }
+                $(`#zb${id}`).animate({ 
+                    left: thisLeft+"%", 
+                    bottom: rand(10)+"%"
+                }, 3000, function(){
+					movezb(id,thisLeft);
+                })
+            }
+
+            // 點開始按鈕時
+            $("#startBtn").on("click", function(){
+                // 將按鈕停用
+                $(this).val("");
+                $(this).attr("disabled", true); 
+
+                // 重設時間及分數
+                sec = 30;
+                $("#secText").text(sec);
+                score = 0;
+                $("#scoreText").text(score);
+
+                // 開始倒數
+                gametimer = setInterval(()=> {
+                    // 秒數減 1，修改文字
+                    sec--;
+                    $("#secText").text(sec);
+
+                    // 如果到 0
+                    if(sec == 0){
+                        clearInterval(gametimer);
+                        $(this).attr("disabled", false);
+                        setTimeout(()=>{
+                            alert("時間到，你得到"+ score +"分");
+                            $("#bg img").remove();
+                            $("startBtn").val("Start");
+                            if (score > high.score) {
+                                let playerName = prompt("恭喜你得到最高分，請輸入名字");
+                                high.name=playerName;
+                                highNameText.innerText=playerName;
+                                high.score=score;
+                                highScoreText.innerText=score;
+
+                                window.localStorage.setItem("highscore",JSON.stringify(high));
+                            }
+                        }, 100)
+                    }              
+
+                    let num = rand(10);
+					let zzleft=rand(85);
+                    if(num >= 0 && num < 8) {  
+                        $("#bg").append(`<img src="./images/1.gif" id="zb${zbid}" class="z1">`); 
+                    }else if(num >= 8 && num < 10){
+						$("#bg").append(`<img src="./images/2.gif" id="zb${zbid}" class="z2">`);
+					}else{
+						$("#bg").append(`<img src="./images/3.gif" id="zb${zbid}" class="z3">`);
+					}
+					$(`#zb${zbid}`).css({ 
+						left: zzleft+"%", 
+						bottom: rand(10)+"%"
+					});
+					movezb(zbid,zzleft);  
+					zbid++;
+                }, 1000)
+            })
+
+            $("#bg").on("click", "img.z1", function(){
+                $(this).fadeOut(2000,function(){});
+                $(this).stop();
+				$(this).remove();
+                score++;
+                $("#scoreText").text(score);
+            })
+			$("#bg").on("click", "img.z2", function(){
+                $(this).fadeOut(2000,function(){});
+                $(this).stop();
+				$(this).remove();
+                score=score+3;
+                $("#scoreText").text(score);
+            })
+			$("#bg").on("click", "img.z3", function(){
+                $(this).fadeOut(2000,function(){});
+                $(this).stop();
+				$(this).remove();
+                score=score+5;
+                $("#scoreText").text(score);
+            })
+
+            function playSound(soundfile) {
+                let audio = new Audio(soundfile);
+                audio.play();
+            }
+        })
+      
+
+    </script>
+    
+</body>
+</html>
